@@ -131,3 +131,4 @@ dmypy.json
 #Misc
 decks.apkg
 tmp/
+export/
