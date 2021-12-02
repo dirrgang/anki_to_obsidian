@@ -1,0 +1,13 @@
+astroid==2.9.0
+beautifulsoup4==4.10.0
+isort==5.10.1
+lazy-object-proxy==1.6.0
+markdownify==0.10.0
+mccabe==0.6.1
+pathvalidate==2.5.0
+platformdirs==2.4.0
+pylint==2.12.1
+six==1.16.0
+soupsieve==2.3.1
+toml==0.10.2
+wrapt==1.13.3
