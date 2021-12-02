@@ -55,36 +55,57 @@ def modify_mathjax(text):
     return result
 
 
+def sanitize_html(text):
+
+    result = re.sub(r'.+?\x1f', '', text, 1)
+    result = re.sub(r'\x1f', '', result)
+    result = re.sub(r'<br></b>', r'</b><br>', result)
+    result = re.sub(r'<b><br>', r'<br><b>', result)
+    result = re.sub(r'&nbsp;', ' ', result)
+    result = re.sub(r'<div>', r'<br><div>', result)
+    result = re.sub(r'</div>', r'</div><br>', result)
+    result = re.sub(r'</dd></dl>', r'</dd></dl><br>', result)
+    result = re.sub(r'', '\n', result)
+
+    return result
+
+
+def transform_format(text):
+    result = sanitize_html(text)
+    result = md.markdownify(result, heading_style="ATX", strip=['a'])
+    result = re.sub(r'\\_', r'_', text)
+    result = remove_cloze(result)
+    result = modify_mathjax(result)
+
+    return result
+
+
+def save_file(title, content, tags):
+
+    dirname = os.path.dirname(__file__)+'/export'
+    filename = sanitize_filename(title.strip()+'.md')
+    filename = os.path.join(
+        dirname, filename)
+
+    file = open(filename, mode="w", encoding='utf-8')
+
+    file.write(content)
+    file.write('\n')
+
+    for tag in tags:
+        file.write('#'+tag+' ')
+
+
 if __name__ == "__main__":
     cur = open_apkg('decks.apkg')
 
     records = cur.fetchall()
 
     for row in records:
+        title = row[2]
+        body = row[1]
+        tags = row[0]
 
-        dirname = os.path.dirname(__file__)+'/export'
-        filename = sanitize_filename(row[2].strip()+'.md')
-        filename = os.path.join(
-            dirname, filename)
+        body = transform_format(body)
 
-        f = open(filename, mode="w", encoding='utf-8')
-        # HTML
-        body = remove_cloze(row[1])
-        body = modify_mathjax(body)
-        body = re.sub(r'.+?\x1f', '', body, 1)
-        body = re.sub(r'\x1f', '', body)
-
-        body = re.sub(r'&nbsp;', ' ', body)
-
-        body = md.markdownify(body, heading_style="ATX")
-
-        # MARKDOWN
-        body = re.sub(r'', '\n', body)
-
-        f.write(body)
-        f.write('\n')
-
-        tags = row[0].split()
-
-        for tag in tags:
-            f.write('#'+tag+' ')
+        save_file(title, body, tags)
