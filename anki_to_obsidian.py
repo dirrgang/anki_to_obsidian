@@ -10,9 +10,10 @@ __license__ = "AGPL-3.0"
 from zipfile import ZipFile
 import sqlite3
 import re
-import markdownify as md
 import os
-from pathvalidate import sanitize_filename
+import markdownify as md
+
+from pathvalidate._filename import sanitize_filename
 
 
 def open_apkg(file):
@@ -61,18 +62,25 @@ if __name__ == "__main__":
 
     for row in records:
 
-        dirname = os.path.dirname(__file__)
+        dirname = os.path.dirname(__file__)+'/export'
+        filename = sanitize_filename(row[2].strip()+'.md')
         filename = os.path.join(
-            dirname, 'export/'+sanitize_filename(row[2]).strip()+'.txt')
+            dirname, filename)
 
-        f = open(filename, mode="w")
-
+        f = open(filename, mode="w", encoding='utf-8')
+        # HTML
         body = remove_cloze(row[1])
         body = modify_mathjax(body)
+        body = re.sub(r'.+?\x1f', '', body, 1)
+        body = re.sub(r'\x1f', '', body)
+
+        body = re.sub(r'&nbsp;', ' ', body)
 
         body = md.markdownify(body, heading_style="ATX")
 
+        # MARKDOWN
         body = re.sub(r'', '\n', body)
+
         f.write(body)
         f.write('\n')
 
