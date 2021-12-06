@@ -16,7 +16,7 @@ import markdownify as md
 from pathvalidate._filename import sanitize_filename
 
 
-def open_apkg(file):
+def open_apkg(file: str):
 
     with ZipFile(file, 'r') as zip_obj:
         zip_obj.extractall('tmp')
@@ -27,7 +27,7 @@ def open_apkg(file):
     return cur
 
 
-def remove_cloze(text):
+def remove_cloze(text: str):
     cloze_regex = re.compile(r'({{c\d+::.*?}})')
     text_list = re.split(cloze_regex, text)
 
@@ -40,7 +40,7 @@ def remove_cloze(text):
     return result
 
 
-def modify_mathjax(text):
+def modify_mathjax(text: str):
 
     mjregex = re.compile(r'(\\\(.*?\\\))')
     text_list = re.split(mjregex, text)
@@ -55,7 +55,7 @@ def modify_mathjax(text):
     return result
 
 
-def sanitize_html(text):
+def sanitize_html(text: str):
 
     result = re.sub(r'.+?\x1f', '', text, 1)
     result = re.sub(r'\x1f', '', result)
@@ -70,17 +70,17 @@ def sanitize_html(text):
     return result
 
 
-def transform_format(text):
+def transform_format(text: str):
     result = sanitize_html(text)
     result = md.markdownify(result, heading_style="ATX", strip=['a'])
-    result = re.sub(r'\\_', r'_', text)
+    result = re.sub(r'\\_', r'_', result)
     result = remove_cloze(result)
     result = modify_mathjax(result)
 
     return result
 
 
-def save_file(title, content, tags):
+def save_file(title: str, content: str, tags: list[str]):
 
     dirname = os.path.dirname(__file__)+'/export'
     filename = sanitize_filename(title.strip()+'.md')
@@ -93,7 +93,7 @@ def save_file(title, content, tags):
     file.write('\n')
 
     for tag in tags:
-        file.write('#'+tag+' ')
+        file.write('#'+tag.strip()+' ')
 
 
 if __name__ == "__main__":
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     for row in records:
         title = row[2]
         body = row[1]
-        tags = row[0]
+        tags = row[0].split()
 
         body = transform_format(body)
 
