@@ -11,6 +11,7 @@ from zipfile import ZipFile
 import sqlite3
 import re
 import os
+import shutil
 import markdownify as md
 
 from pathvalidate._filename import sanitize_filename
@@ -83,7 +84,7 @@ def transform_format(text: str):
 def save_file(title: str, content: str, tags: list[str]):
 
     dirname = os.path.dirname(__file__)+'/export'
-    filename = sanitize_filename(title.strip()+'.md')
+    filename = sanitize_filename(re.sub(r':', r' -', title).strip()+'.md')
     filename = os.path.join(
         dirname, filename)
 
@@ -95,6 +96,13 @@ def save_file(title: str, content: str, tags: list[str]):
     for tag in tags:
         file.write('#'+tag.strip()+' ')
 
+def cleanup():
+    dir_path = './tmp/'
+
+    try:
+        shutil.rmtree(dir_path)
+    except OSError as e:
+        print("Error: %s : %s" % (dir_path, e.strerror))
 
 if __name__ == "__main__":
     cur = open_apkg('decks.apkg')
@@ -109,3 +117,5 @@ if __name__ == "__main__":
         body = transform_format(body)
 
         save_file(title, body, tags)
+
+    cleanup()
