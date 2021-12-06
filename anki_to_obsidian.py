@@ -13,7 +13,6 @@ import sqlite3
 import re
 import os
 import shutil
-import pathlib
 import sys
 import argparse
 import markdownify as md
