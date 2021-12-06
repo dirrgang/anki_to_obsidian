@@ -7,17 +7,21 @@ __author__ = "Dennis Irrgang"
 __version__ = "0.1.0"
 __license__ = "AGPL-3.0"
 
+from sqlite3.dbapi2 import Cursor
 from zipfile import ZipFile
 import sqlite3
 import re
 import os
 import shutil
+import pathlib
+import sys
+import argparse
 import markdownify as md
 
 from pathvalidate._filename import sanitize_filename
 
 
-def open_apkg(file: str):
+def open_apkg(file: str) -> Cursor:
 
     with ZipFile(file, 'r') as zip_obj:
         zip_obj.extractall('tmp')
@@ -28,7 +32,7 @@ def open_apkg(file: str):
     return cur
 
 
-def remove_cloze(text: str):
+def remove_cloze(text: str) -> str:
     cloze_regex = re.compile(r'({{c\d+::.*?}})')
     text_list = re.split(cloze_regex, text)
 
@@ -41,7 +45,7 @@ def remove_cloze(text: str):
     return result
 
 
-def modify_mathjax(text: str):
+def modify_mathjax(text: str) -> str:
 
     mjregex = re.compile(r'(\\\(.*?\\\))')
     text_list = re.split(mjregex, text)
@@ -56,7 +60,7 @@ def modify_mathjax(text: str):
     return result
 
 
-def sanitize_html(text: str):
+def sanitize_html(text: str) -> str:
 
     result = re.sub(r'.+?\x1f', '', text, 1)
     result = re.sub(r'\x1f', '', result)
@@ -71,7 +75,7 @@ def sanitize_html(text: str):
     return result
 
 
-def transform_format(text: str):
+def transform_format(text: str) -> str:
     result = sanitize_html(text)
     result = md.markdownify(result, heading_style="ATX", strip=['a'])
     result = re.sub(r'\\_', r'_', result)
@@ -81,7 +85,7 @@ def transform_format(text: str):
     return result
 
 
-def save_file(title: str, content: str, tags: list[str]):
+def save_file(title: str, content: str, tags: str) -> None:
 
     dirname = os.path.dirname(__file__)+'/export'
     filename = sanitize_filename(re.sub(r':', r' -', title).strip()+'.md')
@@ -93,10 +97,11 @@ def save_file(title: str, content: str, tags: list[str]):
     file.write(content)
     file.write('\n')
 
-    for tag in tags:
+    for tag in tags.split():
         file.write('#'+tag.strip()+' ')
 
-def cleanup():
+
+def cleanup() -> None:
     dir_path = './tmp/'
 
     try:
@@ -104,18 +109,66 @@ def cleanup():
     except OSError as e:
         print("Error: %s : %s" % (dir_path, e.strerror))
 
-if __name__ == "__main__":
-    cur = open_apkg('decks.apkg')
+
+def init_argparse() -> argparse.ArgumentParser:
+
+    parser = argparse.ArgumentParser(
+
+        usage="%(prog)s [OPTION] [FILE]...",
+
+        description="Convert Anki cards from an .apkg deck into Obsidian compatible markdown files."
+
+    )
+
+    parser.add_argument(
+
+        "-v", "--version", action="version",
+
+        version=f"{parser.prog} {__version__}"
+
+    )
+
+    parser.add_argument('files', nargs='*')
+
+    return parser
+
+
+def convert(file) -> None:
+    cur = open_apkg(file)
 
     records = cur.fetchall()
 
     for row in records:
         title = row[2]
         body = row[1]
-        tags = row[0].split()
+        tags = row[0]
 
         body = transform_format(body)
 
         save_file(title, body, tags)
 
     cleanup()
+
+
+def main() -> None:
+    parser = init_argparse()
+
+    args = parser.parse_args()
+
+    for file in args.files:
+
+        if file == "-":
+
+            continue
+
+        try:
+
+            convert(file)
+
+        except (FileNotFoundError, IsADirectoryError) as err:
+
+            print(f"{sys.argv[0]}: {file}: {err.strerror}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
